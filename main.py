@@ -2,6 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher, types, executor
 from personal import *
 import yaml
+from db_sqllite import *
 
 
 with open('config.yaml') as f:
@@ -11,24 +12,28 @@ TOKEN = config['telegram_token']
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
-users_in_session: dict = {}
+db_object = UserBD()
+db_object.get_users_telegram_ids()
 
 
 def set_user(func):
     async def wrapper(message: types.Message):
-        if message.from_user.id not in users_in_session:
-            users_in_session[message.from_user.id] = PersonalCcalCalculator(message.from_user.id,
-                                                                            message.from_user.username)
-        user = users_in_session[message.from_user.id]
+        active_user = db_object.active_users
+        if message.from_user.id not in active_user:
+            return await message.reply(f'I don`t know who are u, u should use /start command', reply=False)
+            # active_user[message.from_user.id] = PersonalCcalCalculator(message.from_user.id,
+            #                                                            message.from_user.username)
+        user = active_user[message.from_user.id]
         return await func(message, user)
     return wrapper
 
 
 @dp.message_handler(commands={'start'})
 async def start_handler(message: types.Message):
-    if message.from_user.id not in users_in_session:
-        users_in_session[message.from_user.id] = PersonalCcalCalculator(message.from_user.id, message.from_user.username)
-    await message.reply(f'Hello', reply=False)
+    active_user = db_object.active_users
+    if message.from_user.id in active_user:
+        await message.reply(f'Hello u already in db', reply=False)
+        return
 
 
 @dp.message_handler(commands={'food'})

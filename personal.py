@@ -1,5 +1,6 @@
 from typing import Optional, Union
 
+
 class PersonalCcalCalculator:
     def __init__(self, user_id: str, username: str):
         self.user_id = user_id
