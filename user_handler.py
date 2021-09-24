@@ -29,7 +29,7 @@ class IState(ABC):
 class DefaultState(IState):
 
 	def __init__(self):
-		self.reply: Optional[str] = None
+		self.reply: Optional[str] = 'DefaultState'
 		self.states = {
 			'Инфо': GetUserState.INFO,
 			'Добавить еду': GetUserState.FOOD,
@@ -49,13 +49,16 @@ class DefaultState(IState):
 
 class InfoState(IState):
 	"""User state by default"""
-	buttons = ('Вся информация', )
+	buttons = ('Вся информация', 'Назад')
 
 	def __init__(self):
 		self.reply: Optional[str] = 'InfoState'
 
 	def handle_message(self, message: str):
 		self.reply = 'InfoState'
+		if message == 'Назад':
+			self.reply = 'Возврат'
+			self.user.state_transition(GetUserState.DEFAULT)
 
 	def state_reply(self) -> reply_state_type:
 		return self.reply, self.buttons
@@ -63,26 +66,36 @@ class InfoState(IState):
 
 class AuthState(IState):
 	"""User authorization status"""
+	buttons = ('Назад',)
+
 	def __init__(self):
 		self.reply: Optional[str] = 'AuthState'
 
 	def handle_message(self, message: str):
 		self.reply = 'AuthState'
+		if message == 'Назад':
+			self.reply = 'Возврат'
+			self.user.state_transition(GetUserState.DEFAULT)
 
 	def state_reply(self) -> reply_state_type:
-		return self.reply, None
+		return self.reply, self.buttons
 
 
 class FoodAddState(IState):
 	"""State of adding food"""
+	buttons = ('Назад',)
+
 	def __init__(self):
 		self.reply: Optional[str] = 'FoodAddState'
 
 	def handle_message(self, message: str):
 		self.reply = 'FoodAddState'
+		if message == 'Назад':
+			self.reply = 'Возврат'
+			self.user.state_transition(GetUserState.DEFAULT)
 
 	def state_reply(self) -> reply_state_type:
-		return self.reply, None
+		return self.reply, self.buttons
 
 
 class GetUserState(Enum):
@@ -97,8 +110,7 @@ class User:
 	"""Main user class"""
 	def __init__(self, user_id: int):
 		self.user_id: 				int = user_id
-		self.active_state: 			Optional[IState] = None
-		self.state_transition()
+		self.active_state: 			IState = GetUserState.DEFAULT.value()
 
 	def user_message(self, message: str):
 		"""Handle user message"""
@@ -106,7 +118,7 @@ class User:
 		state.handle_message(message=message)
 
 	def bot_message(self) -> reply_state_type:
-		"""Reply message for user"""
+		"""Reply for user"""
 		reply = self.active_state.state_reply()
 		return reply
 
