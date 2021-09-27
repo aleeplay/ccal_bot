@@ -83,16 +83,29 @@ class AuthState(IState):
 
 class FoodAddState(IState):
 	"""State of adding food"""
-	buttons = ('Назад',)
+	buttons = ('Добавление', 'Назад', )
 
 	def __init__(self):
 		self.reply: Optional[str] = 'FoodAddState'
+		self.step_names = ('name', 'kcal', 'gram')
+		self.food_iterator = None
+		self.food_data = []
 
 	def handle_message(self, message: str):
 		self.reply = 'FoodAddState'
 		if message == 'Назад':
-			self.reply = 'Возврат'
 			self.user.state_transition(GetUserState.DEFAULT)
+		elif message == 'Добавление':
+			self.food_iterator = iter(self.step_names)
+			self.reply = next(self.food_iterator)
+		else:
+			self.food_data.append(message)
+			try:
+				self.reply = next(self.food_iterator)
+			except StopIteration:
+				foods = {x: y for x in self.step_names for y in self.food_data}
+				self.user.user_data['food'].append(foods)
+				self.reply = f"{self.user.user_data['food']}"
 
 	def state_reply(self) -> reply_state_type:
 		return self.reply, self.buttons
@@ -111,6 +124,10 @@ class User:
 	def __init__(self, user_id: int):
 		self.user_id: 				int = user_id
 		self.active_state: 			IState = GetUserState.DEFAULT.value()
+		self.user_data = {
+			'food': []
+		}
+		self.active_state.user = self
 
 	def user_message(self, message: str):
 		"""Handle user message"""
